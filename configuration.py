@@ -1,0 +1,5 @@
+VK_LOGIN = '+375298399844'
+VK_PASSWORD = 'NoDeS-#vk-830232'
+DB_ADDRESS = 'mysql://root:toor@localhost/ff'
+TMP_DOWNLOAD_DIR = 'tmp'
+DIR_IMAGES = 'vk_images'

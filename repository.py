@@ -1,16 +1,4 @@
-import os
-import shutil
-
-from sqlalchemy.orm import Session
-
-import configuration
-
-
-class VkUser:
-    def __init__(self):
-        self.wave = None
-        self.images = []  # {'type':, 'path':, 'url':}
-        self.friends_ids = []
+from sqlalchemy.orm import sessionmaker
 
 
 class Repository:
@@ -33,31 +21,34 @@ class Repository:
             return [(row_proxy.items()[0][1], row_proxy.items()[1][1]) for row_proxy in result_proxy]
 
     @staticmethod
-    def store_images(user):
-        for image in user.images:
-            shutil.move(image.path, os.path.join(configuration.DIR_IMAGES,
-                                                 user.id,
-                                                 os.path.basename(image)))
+    def escape_sql(x):
+        return f'\'{x}\'' if isinstance(x, str) else str(x)
 
     def create_user(self, user):
         """
         :param user: User object
         """
-        self.store_images(user)
+        Session = sessionmaker(bind=self.data_source)
         session = Session(bind=self.data_source)
         try:
-            session.execute(
-                'INSERT INTO vk_user '
-                f'(vk_user_id, first_name, last_name, is_closed, domain, country_name, city_name, has_photo) '
-                f'VALUES ({user.id}, {user.first_name}, {user.last_name}, {user.is_closed}, {user.domain}, '
-                f'{user.country_name}, {user.city_name},{user.has_photo})')
-            images_query = 'INSERT INTO vk_image (vk_user_id, vk_image_type, vk_image_url, vk_image_path) VALUES ' \
-                           ', '.join([f'({user.id}, profile, {image.url}, {image.path})'
-                                      for image in user.images])
-            session.execute(images_query)
-            wave_query = 'INSERT IGNORE INTO download_state (vk_user_id, state) ' \
-                         ', '.join([f'({friend_id}, {user.wave + 1})' for friend_id in user.friends_ids])
-            session.execute(wave_query)
+            basic_fields = ['id', 'first_name', 'last_name', 'domain', 'is_closed', 'has_photo', 'deactivated', 'country_name',
+                            'city_name', 'can_send_friend_request', 'can_write_private_message', 'interests', 'sex']
+            q_insert_user = f'INSERT INTO vk_user ({", ".join(basic_fields)}) ' + \
+                            f"VALUES ({', '.join([self.escape_sql(user[key]) for key in basic_fields])})"
+            session.execute(q_insert_user)
+            if user['images']:
+                for image in user['images']:
+                    q_insert_images = 'INSERT INTO vk_image (vk_user_id, vk_image_type, vk_image_url, vk_image_path) VALUES ' \
+                                      f"({user['id']}, 'profile', '{image['url']}', '{image['path']}')"
+                    session.execute(q_insert_images)
+            if user['friends_ids']:
+                for friend_id in user['friends_ids']:
+                    session.execute(f'INSERT INTO vk_friend (vk_user_id_from, vk_user_id_to) '
+                                    f"VALUES ({user['id']}, {friend_id})")
+                    session.execute(f'INSERT IGNORE INTO download_state (vk_user_id, state, wave_id) '
+                                    f"VALUES ({friend_id}, {0}, {user['wave'] + 1})")
+            session.execute(f"REPLACE INTO download_state (vk_user_id, state) VALUES {user['id'], 1}")
+            session.commit()
         except:
             session.rollback()
             raise

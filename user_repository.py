@@ -1,7 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 
 
-class Repository:
+class UserRepository:
     def __init__(self, data_source):
         self.data_source = data_source
 
@@ -22,6 +22,8 @@ class Repository:
 
     @staticmethod
     def escape_sql(x):
+        if x is None:
+            return 'NULL'
         return f'\'{x}\'' if isinstance(x, str) else str(x)
 
     def create_user(self, user):

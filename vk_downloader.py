@@ -11,13 +11,13 @@ from mapper import map_to_user_entity
 
 
 class VkDownloader:
-    IMAGE_QUALITY = 0.9
+    IMAGE_QUALITY = 0.6
 
-    def __init__(self, login, password, repository):
+    def __init__(self, login, password, user_repository):
         """
         :param login: account login
         :param password: account password
-        :param repository: database repository
+        :param user_repository: user database repository
         """
         self.vk = vk_api.VkApi(login=login, password=password, captcha_handler=self.captcha_handler)
         try:
@@ -25,14 +25,14 @@ class VkDownloader:
         except vk_api.AuthError as error_msg:
             print(error_msg)
             return
-        self.repository = repository
+        self.repository = user_repository
 
     @staticmethod
     def captcha_handler(captcha):
         key = input('Enter captcha code {0}: '.format(captcha.get_url())).strip()
         return captcha.try_again(key)
 
-    def add_download_root_task(self, user_id):
+    def add_download_task(self, user_id):
         """
         :param user_id: id or screen name
         """
@@ -94,23 +94,21 @@ class VkDownloader:
                                       {
                                           'user_ids': [user_id],
                                           'fields': 'has_photo,domain,photo_max_orig,city,country,home_town,'
-                                                    'can_send_friend_request,can_write_private_message,status'
-                                                    'connections,interests,relation,sex'
+                                                    'can_send_friend_request,can_write_private_message,status,'
+                                                    'connections,interests,sex'
                                       })[0]
-        if not vk_user_data['is_closed']:
+        logging.log(logging.INFO, f'Fetched user data: {vk_user_data}')
+        if 'deactivated' not in vk_user_data and not vk_user_data['is_closed']:
             vk_user_data['profile_images'] = self.vk.method('photos.get', {
                 'owner_id': user_id,
                 'album_id': 'profile'
             })['items']
             # TODO: photos.get == mentions
             vk_user_data['friends_ids'] = self.get_friends_ids(user_id)
-        logging.log(logging.INFO, f'Fetched user data: {vk_user_data}')
         user_entity = map_to_user_entity(vk_user_data, self.IMAGE_QUALITY)
-        if user_entity['deactivated']:
-            return user_entity
         self.download_user_images(user_entity)
         return user_entity
 
-    def id_from_screen_name(self, screen_name):
-        cur_response = self.vk.method('users.get', {'user_ids': {screen_name}})
+    def id_from_screen_name(self, id_or_screen_name):
+        cur_response = self.vk.method('users.get', {'user_ids': {id_or_screen_name}})
         return cur_response[0]['id']

@@ -4,7 +4,8 @@ import sys
 from sqlalchemy import create_engine
 
 import configuration
-from user_repository import UserRepository
+from repository.user_repository import UserRepository
+from repository.image_repository import ImageRepository
 from vk_downloader import VkDownloader
 
 
@@ -15,7 +16,7 @@ class CDI:
 
         self.data_source = create_engine(configuration.DB_ADDRESS)
         self.user_repository = UserRepository(self.data_source)
-        # self.image_repository = ImageRepository(self.data_source)
+        self.image_repository = ImageRepository(self.data_source)
 
     def get_lazy_vk_downloader(self):
         return VkDownloader(configuration.VK_LOGIN, configuration.VK_PASSWORD, self.user_repository)

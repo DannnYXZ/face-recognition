@@ -13,7 +13,7 @@ class FaceDetector:
     def detect_faces(self, image, confidence) -> [(int, int, int, int, float)]:
         """
         :param confidence: ignore face detection threshold
-        :argument image: image as array of colors
+        :param image: cv2 image as array of colors
         :return: array of tuples (startX, startY, endX, endY, confidence)
         """
         faces = []

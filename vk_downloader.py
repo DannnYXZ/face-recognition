@@ -46,7 +46,7 @@ class VkDownloader:
         Continue load social network to local database
         """
         while True:
-            download_tasks = self.get_users_to_download(100)
+            download_tasks = self.get_users_to_download(1000)
             if not download_tasks:
                 break
             heapq.heapify(download_tasks)

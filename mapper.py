@@ -1,3 +1,6 @@
+from entity_model import Image
+
+
 def get_quality_image(images, quality):
     return images[round(max(0, len(images) * quality - 1))]
 
@@ -20,3 +23,20 @@ def map_to_user_entity(user_dto, image_quality):
         for profile_image in user_dto['profile_images']:
             user['images'].append({'type': 'profile', 'url': get_quality_image(profile_image['sizes'], image_quality)['url']})
     return user
+
+
+def map_to_image_entity(row_proxy):
+    image = Image()
+    image.image_id = row_proxy["image_id"]
+    image.path = row_proxy["image_path"]
+    image.url = row_proxy["image_url"]
+    image.type = row_proxy["image_type"]
+    image.faces = []
+    return image
+
+
+def map_to_image_entities(result_proxy):
+    images = []
+    for row_proxy in result_proxy:
+        images.append(map_to_image_entity(row_proxy))
+    return images

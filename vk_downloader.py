@@ -11,7 +11,7 @@ from mapper import map_to_user_entity
 
 
 class VkDownloader:
-    IMAGE_QUALITY = 0.6
+    IMAGE_QUALITY = 0.7
 
     def __init__(self, login, password, user_repository):
         """
@@ -70,14 +70,15 @@ class VkDownloader:
         except OSError as e:
             logging.log(logging.WARN, f'Dir {dst_dir} already exists', e)
         parsed = urlparse.urlparse(url)
-        local_file_path = os.path.join(dst_dir, os.path.basename(parsed.path))
+        saved_file_name = os.path.basename(parsed.path)
+        local_file_path = os.path.join(dst_dir, saved_file_name)
         if os.path.exists(local_file_path):
             logging.log(logging.INFO, f'File {local_file_path} already exists')
-            return local_file_path
+            return saved_file_name
         with open(local_file_path, 'wb') as file:
             response = get(url)
             file.write(response.content)
-        return local_file_path
+        return saved_file_name
 
     def get_friends_ids(self, user_id):
         return self.vk.method('friends.get', {'user_id': user_id})['items']
@@ -85,9 +86,9 @@ class VkDownloader:
     def download_user_images(self, user_entity):
         user_images_dir = os.path.join(configuration.DIR_IMAGES, str(user_entity['id']))
         for image in user_entity['images']:
-            local_filepath = self.download_file(image['url'], user_images_dir)
+            file_name = self.download_file(image['url'], user_images_dir)
             logging.log(logging.INFO, f"Downloaded image: {image['url']}")
-            image['path'] = local_filepath
+            image['path'] = file_name
 
     def download_user(self, user_id):
         vk_user_data = self.vk.method('users.get',

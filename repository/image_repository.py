@@ -6,6 +6,11 @@ class ImageRepository:
     def __init__(self, data_source):
         self.data_source = data_source
 
+    def get_image(self, image_id) -> Image:
+        with self.data_source.begin() as connection:
+            images = map_to_image_entities(connection.execute(f'SELECT * FROM image WHERE image_id={image_id}'))
+            return images[0] if images else None
+
     def get_faces_without_embeddings(self, limit: int) -> [Face]:
         with self.data_source.begin() as connection:
             result_proxy = connection.execute(f'SELECT * FROM face i WHERE embedding IS NULL LIMIT {limit}')
@@ -25,14 +30,18 @@ class ImageRepository:
             result_proxy = connection.execute(
                 f'SELECT * FROM image i LEFT JOIN face f ON i.image_id = f.image_id WHERE f.id IN ('
                 f'{", ".join([face.id for face in faces_without_embeddings])})')
-            return map_to_image_entities(result_proxy)
+            image_entities = map_to_image_entities(result_proxy)
+            _map = {image.id: image for image in image_entities}
+            for face in faces_without_embeddings:
+                _map.get(face.image_id).faces.append(face)
 
     def save_face_regions(self, image_id, detections):
         with self.data_source.begin() as connection:
-            result_proxy = connection.execute(
-                f'SELECT * FROM image i LEFT JOIN face f ON i.image_id = f.image_id WHERE f.id IN ('
-                f'{", ".join([face.id for face in faces_without_embeddings])})')
-            return map_to_image_entities(result_proxy)
+            for detection in detections:
+                connection.execute(
+                    f"INSERT INTO face (image_id, start_x, start_y, end_x, end_y, confidence) "
+                    f"VALUES ({image_id}, {', '.join(map(str, detection))})")
 
     def save_face_embedding(self, face_id, embedding: str):
-        pass
+        with self.data_source.begin() as connection:
+            connection.execute(f"UPDATE face SET embedding = {embedding} WHERE id={face_id}")

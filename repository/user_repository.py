@@ -1,9 +1,17 @@
+import os
+
 from sqlalchemy.orm import sessionmaker
+
+import configuration
 
 
 class UserRepository:
     def __init__(self, data_source):
         self.data_source = data_source
+
+    @staticmethod
+    def get_user_images_directory(user_id):
+        return os.path.join(configuration.DIR_IMAGES, str(user_id))
 
     def add_download_task(self, user_id, wave_id):
         with self.data_source.begin() as connection:
@@ -40,9 +48,10 @@ class UserRepository:
             session.execute(q_insert_user)
             if user['images']:
                 for image in user['images']:
-                    q_insert_images = 'INSERT INTO vk_image (vk_user_id, vk_image_type, vk_image_url, vk_image_path) VALUES ' \
-                                      f"({user['id']}, 'profile', '{image['url']}', '{image['path']}')"
-                    session.execute(q_insert_images)
+                    q_insert_images = 'INSERT INTO image (image_type, image_url, image_path) VALUES ' \
+                                      f"('profile', '{image['url']}', '{image['path']}')"
+                    result = session.execute(q_insert_images)  # TODO: check
+                    session.execute(f"INSERT INTO vk_user_image (vk_user_id, image_id) VALUES ({user['id']}, {result.lastrowid})")
             if user['friends_ids']:
                 for friend_id in user['friends_ids']:
                     session.execute(f'INSERT INTO vk_friend (vk_user_id_from, vk_user_id_to) '

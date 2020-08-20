@@ -1,4 +1,5 @@
 import cv2
+import imutils
 
 
 class FaceEmbedder:
@@ -12,9 +13,11 @@ class FaceEmbedder:
         :return: 128-d embedding vector
         """
         (startX, startY, endX, endY) = face_region
-        face_image = image[startY:endY, startX:endX]
+        resized_image = imutils.resize(image, width=600)
+        face_image = resized_image[startY:endY, startX:endX]
         (fH, fW) = face_image.shape[:2]
-
+        if fW < 20 or fH < 20:
+            return None
         # construct a blob for the face ROI, then pass the blob
         # through our face embedding model to obtain the 128-d
         faceBlob = cv2.dnn.blobFromImage(face_image, 1.0 / 255,

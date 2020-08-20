@@ -38,7 +38,8 @@ embedder = cv2.dnn.readNetFromTorch(args["embedding_model"])
 
 # grab the paths to the input images in our dataset
 print("[INFO] quantifying faces...")
-imagePaths = list(paths.list_images(args["dataset"]))
+# imagePaths = list(paths.list_images(args["dataset"]))
+imagePaths = [r"D:\DannnY-CODE\PROJECTS\face-recognition\vk_images\150526316\a_1f1f20a7.jpg"]
 
 # initialize our lists of extracted facial embeddings and
 # corresponding people names

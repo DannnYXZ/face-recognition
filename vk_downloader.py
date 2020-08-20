@@ -7,13 +7,11 @@ import vk_api
 from requests import get
 
 import configuration
-from mapper import map_to_user_entity
+from repository.mapper import map_to_user_entity
 
 
 class VkDownloader:
-    IMAGE_QUALITY = 0.7
-
-    def __init__(self, login, password, user_repository):
+    def __init__(self, login, password, user_repository, images_root):
         """
         :param login: account login
         :param password: account password
@@ -26,6 +24,7 @@ class VkDownloader:
             print(error_msg)
             return
         self.repository = user_repository
+        self.images_root = images_root
 
     @staticmethod
     def captcha_handler(captcha):
@@ -41,7 +40,7 @@ class VkDownloader:
     def get_users_to_download(self, limit):
         return self.repository.get_users_to_download(limit)
 
-    def continue_download(self):
+    def continue_download(self, image_quality):
         """
         Continue load social network to local database
         """
@@ -57,7 +56,7 @@ class VkDownloader:
                     break
                 target_user_id = current_task[1]
                 try:
-                    downloaded_user = self.download_user(target_user_id)
+                    downloaded_user = self.download_user(target_user_id, image_quality)
                     downloaded_user['wave'] = current_task[0]
                     self.repository.create_user(downloaded_user)
                 except Exception as e:
@@ -70,15 +69,15 @@ class VkDownloader:
         except OSError as e:
             logging.log(logging.WARN, f'Dir {dst_dir} already exists', e)
         parsed = urlparse.urlparse(url)
-        saved_file_name = os.path.basename(parsed.path)
-        local_file_path = os.path.join(dst_dir, saved_file_name)
+        local_file_path = os.path.join(dst_dir, os.path.basename(parsed.path))
         if os.path.exists(local_file_path):
+            # FIXME: if not fully downloaded (check hash or something)
             logging.log(logging.INFO, f'File {local_file_path} already exists')
-            return saved_file_name
+            return local_file_path
         with open(local_file_path, 'wb') as file:
             response = get(url)
             file.write(response.content)
-        return saved_file_name
+        return local_file_path
 
     def get_friends_ids(self, user_id):
         return self.vk.method('friends.get', {'user_id': user_id})['items']
@@ -86,11 +85,11 @@ class VkDownloader:
     def download_user_images(self, user_entity):
         user_images_dir = os.path.join(configuration.DIR_IMAGES, str(user_entity['id']))
         for image in user_entity['images']:
-            file_name = self.download_file(image['url'], user_images_dir)
+            local_file_path = self.download_file(image['url'], user_images_dir)
             logging.log(logging.INFO, f"Downloaded image: {image['url']}")
-            image['path'] = file_name
+            image['path'] = local_file_path
 
-    def download_user(self, user_id):
+    def download_user(self, user_id, image_quality):
         vk_user_data = self.vk.method('users.get',
                                       {
                                           'user_ids': [user_id],
@@ -106,7 +105,7 @@ class VkDownloader:
             })['items']
             # TODO: photos.get == mentions
             vk_user_data['friends_ids'] = self.get_friends_ids(user_id)
-        user_entity = map_to_user_entity(vk_user_data, self.IMAGE_QUALITY)
+        user_entity = map_to_user_entity(vk_user_data, image_quality)
         self.download_user_images(user_entity)
         return user_entity
 

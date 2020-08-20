@@ -19,11 +19,11 @@ class FaceDetector:
         faces = []
         if image is None:
             return faces
-        image = imutils.resize(image, width=600)
-        (h, w) = image.shape[:2]
+        resized_image = imutils.resize(image, width=600)
+        (h, w) = resized_image.shape[:2]
 
         image_blob = cv2.dnn.blobFromImage(
-            cv2.resize(image, (300, 300)), 1.0, (300, 300),
+            cv2.resize(resized_image, (300, 300)), 1.0, (300, 300),
             (104.0, 177.0, 123.0), swapRB=False, crop=False)
 
         self.detector.setInput(image_blob)

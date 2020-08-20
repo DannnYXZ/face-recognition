@@ -1,6 +1,7 @@
 import os
-import cv2
-from repository.user_repository import UserRepository
+
+from cv2 import cv2
+
 from cdi import CDI
 
 cdi = CDI()
@@ -18,7 +19,7 @@ def show_faces_recursive(dir_path):
 def download():
     vk_downloader = cdi.get_lazy_vk_downloader()
     vk_downloader.add_download_task('id150526316')
-    vk_downloader.continue_download()
+    vk_downloader.continue_download(image_quality=0.7)
 
 
 # download()
@@ -30,7 +31,9 @@ def download():
 # vk_downloader.download_user_photos(vk_downloader.id_from_screen_name('alexgrod'))
 # show_faces_recursive('vk_images')
 
-image_entity = cdi.image_repository.get_image(2118)
-image = cv2.imread(os.path.join(UserRepository.get_user_images_directory(user_id=16737748), image_entity.path))
-x = cdi.image_repository.save_face_regions(2118, cdi.face_detector.detect_faces(image, 0.7))
+# image = cv2.imread(r"D:\DannnY-CODE\PROJECTS\face-recognition\vk_images\150526316\a_1f1f20a7.jpg")
+# x = cdi.face_repository.save_face_regions(2118, cdi.face_detector.detect_faces(image, 0.7))
+
+# cdi.find_face_service.extract_faces_in_db(0.7)
+cdi.find_face_service.extract_embeddings_in_db()
 y = 1

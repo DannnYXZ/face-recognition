@@ -21,11 +21,9 @@ class FaceDetector:
             return faces
         resized_image = imutils.resize(image, width=600)
         (h, w) = resized_image.shape[:2]
-
         image_blob = cv2.dnn.blobFromImage(
             cv2.resize(resized_image, (300, 300)), 1.0, (300, 300),
             (104.0, 177.0, 123.0), swapRB=False, crop=False)
-
         self.detector.setInput(image_blob)
         detections = self.detector.forward()
         for i in range(0, detections.shape[2]):
@@ -35,7 +33,8 @@ class FaceDetector:
                 faces.append((*box.astype("int"), actual_confidence))
         return faces
 
-    def show_faces(self, image_path, faces_with_confidence):
+    @staticmethod
+    def show_faces(image_path, faces_with_confidence):
         image = cv2.imread(image_path)
         if image is None:
             return
